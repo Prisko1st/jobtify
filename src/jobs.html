@@ -26,7 +26,7 @@
 
     async function fetchJobs() {
       try {
-        const response = await fetch("http://localhost:2000/jobs/filter");
+        const response = await fetch("/jobs/filter");
         jobs = await response.json();
         renderJobs(jobs);
       } catch (error) {
