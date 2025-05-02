@@ -1,0 +1,7 @@
+services:
+  ngrok:
+    image: ngrok/ngrok:latest
+    environment:
+      - NGROK_AUTHTOKEN=${NGROK_AUTHTOKEN}
+    entrypoint: ["ngrok", "http", "--log=stdout", "host.docker.internal:2000"]
+    restart: unless-stopped

@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Job Listings</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    .job-card {
+      margin-bottom: 1rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="container mt-4">
+    <h2 class="mb-3">Job Listings</h2>
+    
+    <input type="text" id="searchInput" class="form-control mb-4" placeholder="Search jobs...">
+
+    <div class="row" id="jobContainer"></div>
+  </div>
+
+  <script>
+    const jobContainer = document.getElementById("jobContainer");
+    const searchInput = document.getElementById("searchInput");
+    let jobs = [];
+
+    async function fetchJobs() {
+      try {
+        const response = await fetch("http://localhost:2000/jobs/filter");
+        jobs = await response.json();
+        renderJobs(jobs);
+      } catch (error) {
+        console.error("Error fetching jobs:", error);
+      }
+    }
+
+    function renderJobs(jobList) {
+      jobContainer.innerHTML = "";
+      jobList.forEach(job => {
+        const jobCard = `
+          <div class="col-md-4 job-card">
+            <div class="card h-100">
+              <div class="card-body">
+                <h5 class="card-title">${job.title}</h5>
+                <h6 class="card-subtitle mb-2 text-muted">${job.company}</h6>
+                <p class="card-text">${job.job_description || ""}</p>
+              </div>
+              <div class="card-footer">
+                <small class="text-muted">${job.company_city}, ${job.company_location}</small><br>
+                <small class="text-muted">${job.job_date}</small><br>
+                <a href="${job.apply_link}" target="_blank" class="btn btn-primary mt-2">Apply</a>
+              </div>
+            </div>
+          </div>
+        `;
+        jobContainer.innerHTML += jobCard;
+      });
+    }
+
+    searchInput.addEventListener("input", () => {
+      const keyword = searchInput.value.toLowerCase();
+      const filtered = jobs.filter(job =>
+        job.title.toLowerCase().includes(keyword) ||
+        job.company.toLowerCase().includes(keyword) ||
+        job.company_location.toLowerCase().includes(keyword) ||
+        job.company_city.toLowerCase().includes(keyword) ||
+        job.job_date.toLowerCase().includes(keyword)
+      );
+      renderJobs(filtered);
+    });
+
+    fetchJobs();
+  </script>
+</body>
+</html>
