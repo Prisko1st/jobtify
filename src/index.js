@@ -114,7 +114,7 @@ app.get("/jobs", async (req, res) => {
   */
 });
 
-
+/*
 app.get("/jobs/filter", async (req, res) => {
   const { q } = req.query;
 
@@ -139,7 +139,52 @@ app.get("/jobs/filter", async (req, res) => {
     console.error("Error fetching filtered jobs:", error);
     res.status(500).json({ error: "Error fetching filtered jobs" });
   }
-});
+  */
+
+   // example to fetch all jobs without filter
+   app.get("/jobs/filter", async (req, res) => {
+    try {
+      const jobs = await prisma.job.findMany({
+        include: {
+          company: {
+            select: {
+              company_name: true
+            },
+          },        
+          city: {
+            select: {
+              city_name: true,
+            },
+          },
+          state: {
+            select: {
+              state_name: true,
+            },
+          },
+          country: {
+            select: {
+              country_name: true,
+            },
+          },  
+        },
+      });
+  
+      res.json(jobs);
+    } catch (error) {
+      console.error("Error fetching jobs with city names:", error);
+      res.status(500).json({ error: "Failed to fetch jobs" });
+    }
+  });
+
+ app.get("/jobs/city", async (req, res) => {
+  try {
+    const jobs = await prisma.city.findMany(); // Fetch all jobs using Prisma
+    res.json(jobs);
+  } catch (error) {
+    res.status(500).json({ error: "Failed to fetch jobs" });
+  }
+ });
+
 
 
 

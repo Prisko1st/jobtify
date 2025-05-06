@@ -13,22 +13,23 @@
 <body>
   <div class="container mt-4">
     <h2 class="mb-3">Job Listings</h2>
-    
-    <input type="text" id="searchInput" class="form-control mb-4" placeholder="Search jobs...">
 
     <div class="row" id="jobContainer"></div>
   </div>
 
   <script>
     const jobContainer = document.getElementById("jobContainer");
-    const searchInput = document.getElementById("searchInput");
-    let jobs = [];
 
     async function fetchJobs() {
       try {
+        const response2 = await fetch("/jobs/city");
+        const cities = await response2.json();  
+        
         const response = await fetch("/jobs/filter");
-        jobs = await response.json();
+        const jobs = await response.json();
         renderJobs(jobs);
+
+            
       } catch (error) {
         console.error("Error fetching jobs:", error);
       }
@@ -41,14 +42,16 @@
           <div class="col-md-4 job-card">
             <div class="card h-100">
               <div class="card-body">
-                <h5 class="card-title">${job.title}</h5>
-                <h6 class="card-subtitle mb-2 text-muted">${job.company}</h6>
-                <p class="card-text">${job.job_description || ""}</p>
+                <h5 class="card-title">${job.job_name}</h5>
+                <h6 class="card-subtitle mb-2 text-muted">${job.company?.company_name}</h6>
+                <p class="card-text">${job.job_description || "No description available"}</p>
+                <p class="card-text"><strong>Salary:</strong> ${job.salary_min || "N/A"} - ${job.salary_max || "N/A"} ${job.salary_currency || ""}</p>
+                <p class="card-text"><strong>Posted Date:</strong> ${job.job_posted_date}</p>
+                <p class="card-text"><strong>Location:</strong> ${job.city?.city_name || "Unknown"}, ${job.state?.state_name || "Unknown"}, ${job.country?.country_name || "Unknown"}</p>
+                <p class="card-text"><strong>Remote:</strong> ${job.is_remote ? "Yes" : "No"}</p>
               </div>
               <div class="card-footer">
-                <small class="text-muted">${job.company_city}, ${job.company_location}</small><br>
-                <small class="text-muted">${job.job_date}</small><br>
-                <a href="${job.apply_link}" target="_blank" class="btn btn-primary mt-2">Apply</a>
+                <a href="${job.apply_link}" target="_blank" class="btn btn-primary">Apply</a>
               </div>
             </div>
           </div>
@@ -56,18 +59,6 @@
         jobContainer.innerHTML += jobCard;
       });
     }
-
-    searchInput.addEventListener("input", () => {
-      const keyword = searchInput.value.toLowerCase();
-      const filtered = jobs.filter(job =>
-        job.title.toLowerCase().includes(keyword) ||
-        job.company.toLowerCase().includes(keyword) ||
-        job.company_location.toLowerCase().includes(keyword) ||
-        job.company_city.toLowerCase().includes(keyword) ||
-        job.job_date.toLowerCase().includes(keyword)
-      );
-      renderJobs(filtered);
-    });
 
     fetchJobs();
   </script>
