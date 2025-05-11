@@ -1,7 +1,45 @@
-/*
+
 oninya ini adalah contoh API project X, yang sudah diubah dari project sebelumnya
 yang menggunakan express dan prisma, untuk menampilkan data dari database postgresql
-*/
+
+job search by keyword (title,city,state,country) //DONE ?
+
+job_category // DONE
+company // DOONE
+
+job detail (only with id), render only with id // DONE
+
+pagination (membatasi render) //DONE
+
+coba swagger untuk api dokumentasi // DONE
+
+
+
+✅ 1. Initialize Git (if not already):
+git init
+
+✅ 2. Check Git status (optional):
+git status
+
+✅ 3. Stage changes:
+Stage everything:
+git add .
+
+Or stage specific files:
+git add filename.ext
+
+✅ 4. Commit the changes:
+git commit -m "Your commit message"
+
+✅ 5. Connect to GitHub repo (if not already connected):
+git remote add origin https://github.com/your-username/your-repo.git
+
+✅ 6. Push the changes:
+First time (or force push to main branch):
+git push -u origin main
+
+For subsequent pushes:
+git push
 
 /*jobs.html
 <!DOCTYPE html>

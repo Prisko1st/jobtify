@@ -5,6 +5,9 @@ const { PrismaClient } = require("@prisma/client");
 const prisma = new PrismaClient();
 const app = express();
 
+const swaggerUi = require('swagger-ui-express');
+const swaggerSpec = require('./swagger'); // Adjust path if needed
+
 // Body parser middleware (add this!)
 app.use(express.json()); // <-- Handles JSON requests
 app.use(express.urlencoded({ extended: true })); // <-- Handles form submissions
@@ -26,86 +29,22 @@ const path = require("path");
 app.use(express.static(path.join(__dirname)));
 
 app.get("", async (req, res) => {
-    res.send("CONTOH API PROJECT X, start with /api,   /products, /jobs");
+    res.send("API PROJECT X");
 });
 
-app.get("/api", (req, res) => {
-    res.send("VECTOR KEREN BANGET DONG");
-});
-app.get("/id", (req, res) => {
-  res.send("INI WEBSITE BERBAHASA INDONESIA");
-});
-app.get("/en", (req, res) => {
-  res.send("this is website in english");
-});
-/* kalau mau bikin database baru trus dimasukkan ke sini, model database harus ditambahkan di schema.prisma dulu
-    bisa buat manual dari schema.prisma atau kalau sudah data database nya bisa langsung di pull saja dari database postgresql
-    dengan "npx prisma db pull", baru di generate dengan "npx prisma generate"
-
-*/
-
-//dibawah, get /products
-app.get("/products", async (req, res) => {
-    res.sendFile(path.join(__dirname, "products.html")); //menampilkan frontend + backend hanya dengan /products (no .html)
-
-    /* untuk menampilkan isi database saja
-    const products = await prisma.product.findMany();
-    res.send(products);
-    */
-});
-//dibawah, metohd post , agar bisa mem-post(input) ke database products
-app.post("/products", async (req, res) => {
-    const { name, price, description, image } = req.body;
+// Swagger endpoint
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
   
-    try {
-      const newProduct = await prisma.product.create({
-        data: {
-          name,
-          price: parseFloat(price), // convert string to number
-          description,
-          image,
-        },
-      });
-      res.status(201).json(newProduct);
-    } catch (error) {
-      console.error("Error adding product:", error);
-      res.status(500).json({ error: "Failed to add product" });
-    }
-  });
-  
-  
-
-  // Example Express route to support `?q=...`
-  app.get("/products/filter", async (req, res) => {
-    const { q } = req.query;
-  
-    const filters = q
-      ? {
-          OR: [
-            { name: { contains: q, mode: "insensitive" } },
-            { description: { contains: q, mode: "insensitive" } },
-            {
-              price: {
-                equals: isNaN(parseFloat(q)) ? undefined : parseFloat(q),
-              },
-            },
-          ],
-        }
-      : {};
-  
-    try {
-      const products = await prisma.product.findMany({
-        where: filters,
-      });
-      res.json(products);
-    } catch (error) {
-      console.error("Error filtering products:", error);
-      res.status(500).json({ error: "Failed to filter products" });
-    }
-  });
-  
-  
-
+/**
+ * @swagger
+ * /jobs:
+ *   get:
+ *     summary: menampilkan jobs.html
+ *     description: Menampilkan halaman jobs.html
+ *     responses:
+ *       200:
+ *         description: Success
+ */
 app.get("/jobs", async (req, res) => {
   res.sendFile(path.join(__dirname, "jobs.html")); //untuk membuka jobs.html hanya dengan /jobs
   /*
@@ -114,43 +53,56 @@ app.get("/jobs", async (req, res) => {
   */
 });
 
-/*
-app.get("/jobs/filter", async (req, res) => {
-  const { q } = req.query;
-
-  try {
-    const where = q
-      ? {
-          OR: [
-            { title: { contains: q, mode: "insensitive" } },
-            { company: { contains: q, mode: "insensitive" } },
-            { company_location: { contains: q, mode: "insensitive" } },
-            { company_city: { contains: q, mode: "insensitive" } },
-            { company_country: { contains: q, mode: "insensitive" } },
-            { job_date: { contains: q, mode: "insensitive" } }
-          ]
-        }
-      : {};
-
-    const filteredJobs = await prisma.nation_job.findMany({ where });
-
-    res.json(filteredJobs);
-  } catch (error) {
-    console.error("Error fetching filtered jobs:", error);
-    res.status(500).json({ error: "Error fetching filtered jobs" });
-  }
-  */
 
    // example to fetch all jobs without filter
-   app.get("/jobs/filter", async (req, res) => {
+   // buat pagination
+   /**
+ * @swagger
+ * /jobs/show:
+ *   get:
+ *     summary: Menampilkan daftar pekerjaan
+ *     description: Menampilkan daftar semua perkerjaan, optional engan filter berdasarkan nama pekerjaan atau nama perusahaan
+ *     parameters:
+ *       - in: query
+ *         name: q
+ *         schema:
+ *           type: string
+ *         description: Filter jobs by name or company (case-insensitive) (OPTIONAL)
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *         description: Page number for pagination (default is 1)
+ *       - in: query
+ *         name: pageSize
+ *         schema:
+ *           type: integer
+ *         description: Number of jobs per page (default is 10) 
+ *     responses:
+ *       200:
+ *         description: Success
+ */
+   app.get("/jobs/show", async (req, res) => {
     try {
+      const { q, page = 1, pageSize = 10 } = req.query; // Default to page 1 and pageSize 10
+
+      const filter = q
+        ? {
+            OR: [
+              { job_name: { contains: q, mode: "insensitive" } },
+              { company: { company_name: { contains: q, mode: "insensitive" } } },
+            ],
+          }
+        : {};
+
       const jobs = await prisma.job.findMany({
+        where: filter,
         include: {
           company: {
             select: {
-              company_name: true
+              company_name: true,
             },
-          },        
+          },
           city: {
             select: {
               city_name: true,
@@ -165,30 +117,201 @@ app.get("/jobs/filter", async (req, res) => {
             select: {
               country_name: true,
             },
-          },  
+          },
+        },
+        skip: (page - 1) * pageSize, // Calculate the offset
+        take: parseInt(pageSize), // Limit the number of records
+      });
+
+      // Get the total count of jobs for pagination metadata
+      const totalJobs = await prisma.job.count({ where: filter });
+
+      res.json({
+        data: jobs,
+        meta: {
+          total: totalJobs,
+          page: parseInt(page),
+          pageSize: parseInt(pageSize),
+          totalPages: Math.ceil(totalJobs / pageSize),
         },
       });
-  
-      res.json(jobs);
     } catch (error) {
-      console.error("Error fetching jobs with city names:", error);
+      console.error("Error fetching jobs with pagination:", error);
       res.status(500).json({ error: "Failed to fetch jobs" });
     }
   });
 
- app.get("/jobs/city", async (req, res) => {
+//to fech only spesific job By id
+/**
+ * @swagger
+ * /jobs/detail:
+ *   get:
+ *     summary: Menampilkan spesific pekerjaan
+ *     description: Menampilkan detail pekerjaan berdasarkan ID
+ *     parameters:
+ *       - in: query
+ *         name: id
+ *         schema:
+ *           type: integer
+ *         required: true
+ *         description: ID pekerjaan yang ingin ditampilkan
+ *     responses:
+ *       200:
+ *         description: Success
+ */
+app.get("/jobs/detail", async (req, res) => {
   try {
-    const jobs = await prisma.city.findMany(); // Fetch all jobs using Prisma
-    res.json(jobs);
+    const { id } = req.query;
+
+    if (!id) {
+      return res.status(400).json({ error: "Job ID is required" });
+    }
+
+    const job = await prisma.job.findUnique({
+      where: {
+        job_id: parseInt(id), // Ensure the ID is parsed as an integer
+      }
+    });
+
+    if (!job) {
+      return res.status(404).json({ error: "Job not found" });
+    }
+
+    res.json(job);
   } catch (error) {
-    res.status(500).json({ error: "Failed to fetch jobs" });
+    console.error("Error fetching job details:", error);
+    res.status(500).json({ error: "Failed to fetch job details" });
   }
- });
+});
 
+/**
+ * @swagger
+ * /jobcategory:
+ *   get:
+ *     summary: Menampilkan kategori pekerjaan
+ *     description: Menampilkan kategori pekerjaan, optional berdasarkan job_category_id
+ *     parameters:
+ *       - in: query
+ *         name: id
+ *         schema:
+ *           type: integer
+ *        
+ *         description: job_category_id yang ingin ditampilkan (OPTIONAL)
+ *     responses:
+ *       200:
+ *         description: Success
+ */
+app.get("/jobcategory", async (req, res) => {
+  try {
+    const { id } = req.query;
+    const filter = id
+        ? {
+            OR: [
+              { job_category_id: parseInt(id) }, // Ensure the ID is parsed as an integer
+            ],
+          }
+        : {};
+    
 
+    const jobCategories = await prisma.job_category.findMany({ 
+      where: filter
+      });
 
+    if (!jobCategories) {
+      return res.status(404).json({ error: "Job Category not found" });
+    }
+    res.json(jobCategories);
+  } catch (error) {
+    console.error("Error fetching job category:", error);
+  }
+  
+});
+
+/**
+ * @swagger
+ * /company/show:
+ *   get:
+ *     summary: Menampilkan daftar perusahaan
+ *     description: Menampilkan daftar semua perusahaan, optional engan filter berdasarkan nama perusahaan
+ *     parameters:
+ *       - in: query
+ *         name: q
+ *         schema:
+ *           type: string
+ *         description: Filter companies by name (case-insensitive) (OPTIONAL)
+ *     responses:
+ *       200:
+ *         description: Success
+ */
+app.get("/company/show", async (req, res) => {
+  try {
+    const { q } = req.query;
+
+    const where = q
+      ? {
+          OR: [
+            { company_name: { contains: q, mode: "insensitive" } },
+           // { company_location: { contains: q, mode: "insensitive" } },
+           // { company_city: { contains: q, mode: "insensitive" } },
+           // { company_country: { contains: q, mode: "insensitive" } },
+          ],
+        }
+      : {};
+
+    const companies = await prisma.company.findMany({
+      where,
+    });
+
+    res.json(companies);
+  } catch (error) {
+    console.error("Error fetching filtered companies:", error);
+    res.status(500).json({ error: "Failed to filter companies" });
+  }
+});
+
+/**
+ * @swagger
+ * /company/detail:
+ *   get:
+ *     summary: Menampilkan spesific perusahaan
+ *     description: Menampilkan detail perusahaan berdasarkan ID
+ *     parameters:
+ *       - in: query
+ *         name: id
+ *         schema:
+ *           type: integer
+ *         required: true
+ *         description: ID perusahaan yang ingin ditampilkan
+ *     responses:
+ *       200:
+ *         description: Success
+ */
+app.get("/company/detail", async (req, res) => {
+  try {
+    const { id } = req.query;
+
+    if (!id) {
+      return res.status(400).json({ error: "Company ID is required" });
+    }
+
+    const company = await prisma.company.findUnique({
+      where: {
+        company_id: parseInt(id), // Ensure the ID is parsed as an integer
+      }
+    });
+
+    if (!company) {
+      return res.status(404).json({ error: "Company not found" });
+    }
+
+    res.json(company);
+  } catch (error) {
+    console.error("Error fetching company details:", error);
+    res.status(500).json({ error: "Failed to fetch company details" });
+  }
+});
 
 // cara menjalankan server yaitu ketik = "node ." / "nodemon ."
 app.listen(PORT, () => {
     console.log("EXPRESS API RUNNING IN PORT: " + PORT);
-}); 
+});
